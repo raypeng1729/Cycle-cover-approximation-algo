@@ -2,6 +2,7 @@
 using namespace std;
 
 #define int long long
+const int MAX = 1e10;
 
 struct DSU{
     int sz;
@@ -238,7 +239,7 @@ struct Graph{
         idx(){}
         idx(int _v, int _id) : v(_v), id(_id){}
     };
-    int n, B, B_square, threshold;
+    int n, B, threshold;
     vector<pair<int, int>> coord;
     vector<vector<idx>> adj_list;
     vector<vector<bool>> adj;
@@ -247,7 +248,6 @@ struct Graph{
     vector<bool> used;
     Graph(){
         cin >> n >> B;
-        B_square = B * B;
         init();
         for(int i = 0; i < n; i++){
             cin >> coord[i].first >> coord[i].second;
@@ -270,7 +270,7 @@ struct Graph{
         threshold = th * th;
         for(int i = 0; i < n; i++){
             for(int j = i + 1; j < n; j++){
-                if(dist(i, j) < threshold){
+                if(dist(i, j) <= threshold){
                     edge_list.push_back(edge(i, j, dist(i, j)));
                     adj[i][j] = adj[j][i] = 1;
                 }
@@ -301,12 +301,10 @@ struct Graph{
         }
         int od = odd_degree.size();
         WeightGraph solver;
-        solver.init(od);
+        solver.init(n);
         for(int i = 0; i < od; i++){
             for(int j = i + 1; j < od; j++){
-                if(dist(odd_degree[i], odd_degree[j]) < threshold){
-                    solver.add_edge(odd_degree[i] + 1, odd_degree[j] + 1, dist(odd_degree[i], odd_degree[j]));
-                }
+                solver.add_edge(odd_degree[i] + 1, odd_degree[j] + 1, MAX - (int)sqrt(dist(odd_degree[i], odd_degree[j])));
             }
         }
         solver.solve();
@@ -314,6 +312,8 @@ struct Graph{
             if(solver.match[i] && i < solver.match[i]){
                 int mat = solver.match[i];
                 adj[i - 1][mat - 1] = adj[mat - 1][i - 1] = 1;
+                degree[i - 1]++;
+                degree[mat - 1]++;
             }
         }
     }
@@ -333,11 +333,12 @@ struct Graph{
             int j = 0, k = 1, cnt = 0;
             while(j < n){
                 int sum = 0;
-                while(k < n && sum + dist(v[k - 1], v[k]) + (j < k - 1) * dist(v[j], v[k]) <= B * B){
-                    sum += dist(j, k);
+                while(k < n && sum + sqrt(dist(v[k - 1], v[k]) + dist(v[j], v[k])) <= B){
+                    sum += sqrt(dist(k - 1, k));
                     k++;
                 }
                 j = k;
+                k++;
                 cnt++;
             }
             ans = min(ans, cnt);
@@ -348,19 +349,21 @@ struct Graph{
     int euler_circuit(){
         int id = 0, result = 0;
         for(int i = 0; i < n; i++){
-            for(int j = 0; j < n; j++){
-                if(i == j){
-                    continue;
-                }
+            for(int j = i + 1; j < n; j++){
                 if(adj[i][j]){
                     adj_list[i].push_back(idx(j, id++));
+                    adj_list[j].push_back(idx(i, id));
                 }
             }
         }
         used.assign(id, 0);
         vector<bool> vis(n, 0);
         for(int i = 0; i < n; i++){
-            if(!adj_list[i].size() || used[adj_list[i][0].id]){
+            if(!adj_list[i].size()){
+                result++;
+                continue;
+            }
+            if(used[adj_list[i][0].id]){
                 continue;
             }
             vector<int> circuit, shortcuted_circuit;
@@ -394,6 +397,6 @@ void solve(){
 }
 
 signed main(){
-    //freopen("input.txt", "r", stdin);
+    //freopen("test_data.txt", "r", stdin);
     solve();
 }
